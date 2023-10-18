@@ -34,6 +34,18 @@ class TestRoutes(TestCase):
                 response = self.client.get(reverse(name))
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
+    def test_pages_availability_for_auth_user(self):
+        view_names = (
+            'notes:list',
+            'notes:add',
+            'notes:success',
+        )
+        self.client.force_login(self.user)
+        for name in view_names:
+            with self.subTest(name=name):
+                response = self.client.get(reverse(name))
+                self.assertEqual(response.status_code, HTTPStatus.OK)
+
     def test_availability_for_note_read_edit_and_delete(self):
         users_statuses = (
             (self.author, HTTPStatus.OK),
@@ -52,6 +64,7 @@ class TestRoutes(TestCase):
         view_names_args = (
             ('notes:list', None),
             ('notes:add', None),
+            ('notes:success', None),
             ('notes:detail', (self.note.slug,)),
             ('notes:edit', (self.note.slug,)),
             ('notes:delete', (self.note.slug,)),
