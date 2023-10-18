@@ -27,7 +27,7 @@ class TestRoutes(TestCase):
             'notes:home',
             'users:login',
             'users:logout',
-            'users:signup',            
+            'users:signup',
         )
         for name in view_names:
             with self.subTest(name=name):
