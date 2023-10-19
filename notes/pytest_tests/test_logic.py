@@ -1,7 +1,11 @@
+from http import HTTPStatus
+
 import pytest
 from django.urls import reverse
-from pytest_django.asserts import assertRedirects
+from pytest_django.asserts import assertRedirects, assertFormError
+from pytils.translit import slugify
 
+from notes.forms import WARNING
 from notes.models import Note
 
 
@@ -24,3 +28,54 @@ def test_anonymous_user_cant_create_note(client, form_data):
     expected_url = f'{login_url}?next={url}'
     assertRedirects(response, expected_url)
     assert Note.objects.count() == 0
+
+
+def test_not_unique_slug(author_client, note, form_data):
+    form_data['slug'] = note.slug
+    response = author_client.post(reverse('notes:add'), data=form_data)
+    assertFormError(response, 'form', 'slug', errors=(note.slug + WARNING))
+    assert Note.objects.count() == 1
+
+
+def test_empty_slug(author_client, form_data):
+    form_data.pop('slug')
+    response = author_client.post(reverse('notes:add'), data=form_data)
+    assertRedirects(response, reverse('notes:success'))
+    assert Note.objects.count() == 1
+    new_note = Note.objects.get()
+    expected_slug = slugify(form_data['title'])
+    assert new_note.slug == expected_slug
+
+
+def test_author_can_edit_note(author_client, form_data, note):
+    response = author_client.post(
+        reverse('notes:edit', args=(note.slug,)), form_data,
+    )
+    assertRedirects(response, reverse('notes:success'))
+    note.refresh_from_db()
+    assert note.title == form_data['title']
+    assert note.text == form_data['text']
+    assert note.slug == form_data['slug']
+
+
+def test_other_user_cant_edit_note(admin_client, form_data, note):
+    response = admin_client.post(
+        reverse('notes:edit', args=(note.slug,)), data=form_data,
+    )
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    note_from_db = Note.objects.get(pk=note.pk)
+    assert note.title == note_from_db.title
+    assert note.text == note_from_db.text
+    assert note.slug == note_from_db.slug
+
+
+def test_author_can_delete_note(author_client, slug_for_args):
+    response = author_client.post(reverse('notes:delete', args=slug_for_args))
+    assertRedirects(response, reverse('notes:success'))
+    assert Note.objects.count() == 0
+
+
+def test_other_user_cant_delete_note(admin_client, slug_for_args):
+    response = admin_client.post(reverse('notes:delete', args=slug_for_args))
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert Note.objects.count() == 1
