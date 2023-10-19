@@ -35,7 +35,7 @@ def test_pages_availability_for_auth_user(admin_client, name):
     ('notes:detail', 'notes:edit', 'notes:delete'),
 )
 def test_pages_availability_for_author(
-    parametrized_client, name, note, expected_status,
+        parametrized_client, name, note, expected_status,
 ):
     response = parametrized_client.get(reverse(name, args=(note.slug,)))
     assert response.status_code == expected_status

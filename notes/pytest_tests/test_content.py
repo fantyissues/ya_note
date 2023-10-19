@@ -10,7 +10,7 @@ from django.urls import reverse
     ),
 )
 def test_notes_list_for_different_users(
-    note, parametrized_client, note_in_list,
+        note, parametrized_client, note_in_list,
 ):
     response = parametrized_client.get(reverse('notes:list'))
     object_list = response.context['object_list']
